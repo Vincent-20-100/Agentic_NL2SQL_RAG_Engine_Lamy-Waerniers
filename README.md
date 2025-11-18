@@ -175,8 +175,6 @@ Agentic_Systems_with_RAG_Lamy-Waerniers/
 
 ### 🏛️ Architecture Breakdown
 
-The codebase follows a **modular architecture** to avoid circular imports and improve maintainability:
-
 #### Core Modules:
 
 - **`config.py`** - Central configuration hub
@@ -217,172 +215,6 @@ The codebase follows a **modular architecture** to avoid circular imports and im
   - UI components (chat interface, source attribution)
   - Session state management
   - Workflow execution and streaming
-
-This modular design ensures:
-- ✅ No circular import dependencies
-- ✅ Clear separation of concerns
-- ✅ Easy testing and maintenance
-- ✅ Reusable components
-
----
-
-## 🧩 Components
-
-### 1. Workflow Nodes (`nodes.py`)
-
-The core workflow nodes built with **LangGraph**.
-
-**Key Components:**
-
-#### Planner Node
-```python
-def planner_node(state: AgentState) -> dict:
-    """Analyzes question and plans tool usage"""
-    # Uses GPT-4o-mini to decide which tools are needed
-    # Returns: needs_sql, needs_semantic, needs_omdb, needs_web flags
-    # Also prepares specific queries for each tool
-```
-
-**Decision Logic:**
-- SQL: For structured data (titles, years, ratings, genres)
-- Semantic: For plot-based searches and "movies like X"
-- OMDB: For detailed metadata (actors, awards, posters)
-- Web: For trending topics and recent news
-
-#### SQL Node
-```python
-def sql_node(state: AgentState) -> dict:
-    """Generates and executes SQL queries"""
-    # Analyzes database catalog
-    # Generates SQL with proper table names, filters
-    # Executes query and returns results
-```
-
-**Features:**
-- Auto-detects correct table names
-- Handles genre filtering (comma-separated values)
-- Year ranges, type filtering (Movie vs TV Show)
-- Result limiting and ordering
-
-#### Semantic Search Node
-```python
-def semantic_search_node(state: AgentState) -> dict:
-    """Performs vector similarity search"""
-    # Translates query to English if needed
-    # Optimizes query for embeddings
-    # Searches ChromaDB with OpenAI embeddings
-    # Returns top-k similar movies
-```
-
-**Important Notes:**
-- Movie descriptions are in **English** - queries are auto-translated
-- Similarity scores may appear low (40-60%) but rankings are accurate
-- Uses cosine similarity on text-embedding-3-small vectors
-
-#### OMDB Node
-```python
-def omdb_node(state: AgentState) -> dict:
-    """Fetches enriched movie data from OMDB API"""
-    # Extracts movie title from context
-    # Queries OMDB API
-    # Returns: plot, actors, awards, IMDb rating, poster URL
-```
-
-#### Web Search Node
-```python
-def web_node(state: AgentState) -> dict:
-    """Performs web search via DuckDuckGo"""
-    # Executes search query
-    # Returns recent results with URLs
-```
-
-#### Synthesizer Node
-```python
-def synthesizer_node(state: AgentState) -> dict:
-    """Combines all results into natural response"""
-    # Takes SQL, semantic, OMDB, web results
-    # Generates coherent natural language answer
-    # Includes source attribution
-```
-
-### 2. Tools (`tools.py`)
-
-Implements all the tools that the agent can use for data retrieval.
-
-**Tool Functions:**
-
-```python
-@tool
-def execute_sql_query(query: str, db_name: str, state_catalog: dict) -> str:
-    """Execute SQL query on specified database"""
-    # Validates database exists in catalog
-    # Connects to SQLite database
-    # Executes query and returns JSON results
-
-@tool
-def semantic_search(query: str, n_results: int = 5, table_filter: str = None) -> str:
-    """Execute semantic search on movie embeddings"""
-    # Connects to ChromaDB collection
-    # Embeds query using OpenAI embeddings
-    # Searches vector database for similar movies
-    # Returns top-k results with similarity scores
-
-@tool
-def omdb_api(by: str = "title", t: str = None, plot: str = "full") -> str:
-    """Query OMDb API for movie details"""
-    # Queries OMDB with API key
-    # Returns detailed movie information
-
-@tool
-def web_search(query: str, num_results: int = 5) -> str:
-    """Web search via DuckDuckGo"""
-    # Executes web search
-    # Returns search results
-```
-
-**Embedding Structure (ChromaDB):**
-```python
-{
-    "id": "net0042",                    # Unique ID (prefix + index)
-    "document": "A sci-fi thriller...", # Movie description (embedded)
-    "metadata": {
-        "title": "The Matrix",
-        "database": "movie.db",
-        "table": "netflix_titles"
-    }
-}
-```
-
-### 3. Database Schema
-
-**SQL Tables:**
-Each table (netflix_titles, amazon_prime_titles, disney_plus_titles) contains:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| show_id | TEXT | Unique identifier (e.g., "s1") |
-| type | TEXT | "Movie" or "TV Show" |
-| title | TEXT | Movie/show title |
-| director | TEXT | Director name(s) |
-| cast | TEXT | Comma-separated actors |
-| country | TEXT | Production country |
-| date_added | TEXT | Date added to platform |
-| release_year | INTEGER | Year of release |
-| rating | TEXT | Age rating (PG, R, etc.) |
-| duration | TEXT | Runtime or seasons |
-| listed_in | TEXT | Comma-separated genres |
-| description | TEXT | Plot summary |
-
-**Total Records:** ~8,800 movies/shows
-
-### 4. Vector Database
-
-**ChromaDB Collection:**
-- Name: `movie_descriptions`
-- Embedding Model: OpenAI text-embedding-3-small (1536 dimensions)
-- Total Vectors: ~8,800 movie descriptions
-- Storage: Persistent on disk (~156MB total)
-- Metadata: title, database, table for filtering
 
 ---
 
@@ -500,27 +332,6 @@ conversations/
 - No multi-user support
 - API costs not attributable to users
 
-**Proposed UI:**
-
-```
-┌─────────────────────────────────────────┐
-│  ⚙️ Settings                           │
-├─────────────────────────────────────────┤
-│  User ID: [user_123]                    │
-│                                         │
-│  🔑 OpenAI API Key:                    │
-│  [sk-proj-******************] [Save]    │
-│                                         │
-│  🎬 OMDB API Key:                      │
-│  [8871ab87           ] [Save]           │
-│                                         │
-│  💰 Token Usage This Session: 1,234    │
-│  💵 Estimated Cost: $0.05              │
-│                                         │
-│  [Clear History] [Export Data]          │
-└─────────────────────────────────────────┘
-```
-
 **Implementation:**
 - Streamlit sidebar with settings panel
 - Encrypted key storage per user (keyring library)
@@ -561,31 +372,6 @@ User Question
 └────────────────┘
 ```
 
-**Evaluator Node Logic:**
-```python
-def evaluator_node(state: AgentState) -> dict:
-    """
-    Checks if gathered data is sufficient to answer question
-    Returns: continue (to synthesizer) or replan (back to planner)
-    """
-    results_quality = assess_data_completeness(state)
-
-    if results_quality["sufficient"]:
-        return {"next": "synthesize"}
-    else:
-        # Request additional tools
-        return {
-            "next": "planner",
-            "feedback": "Need more data: " + results_quality["missing"]
-        }
-```
-
-**Benefits:**
-- 🔁 Self-correcting behavior
-- 🎯 More complete answers
-- 🧠 Adaptive tool selection
-- ⚡ Avoids premature responses
-
 ### 5. 📈 **Embedding Quality Improvements**
 
 **Current Limitations:**
@@ -598,8 +384,6 @@ def evaluator_node(state: AgentState) -> dict:
 
 #### A. **Enhance Movie Description Quality** (Priority #1)
 Currently, we only embed the plot description field from databases (single sentence).
-
-**Solution:**
 Use APIs to enrich our database with way longer movie descritions.
 Expected Impact:
 - 🎯 More contextual embeddings
@@ -612,38 +396,6 @@ Expected Impact:
 - JSON parsing errors possible in synthesizer
 - Inconsistent response formats
 - Difficult to extract structured data
-
-**Solution - Pydantic Models:**
-
-```python
-from pydantic import BaseModel, Field
-from typing import List, Optional
-
-class MovieResult(BaseModel):
-    title: str
-    year: int
-    rating: Optional[str]
-    genres: List[str]
-    description: str
-    source: str  # "sql", "semantic", "omdb"
-
-class QueryResponse(BaseModel):
-    answer: str = Field(..., description="Natural language answer")
-    movies: List[MovieResult] = Field(default=[], description="Structured movie data")
-    sources: List[str] = Field(..., description="Sources used")
-    confidence: float = Field(..., ge=0, le=1, description="Confidence score")
-    follow_up_suggestions: List[str] = Field(default=[], description="Suggested follow-up questions")
-
-# Use in synthesizer
-structured_llm = llm.with_structured_output(QueryResponse)
-response = structured_llm.invoke(synthesis_prompt)
-```
-
-**Benefits:**
-- ✅ Guaranteed valid JSON
-- ✅ Type safety
-- ✅ Easier frontend integration
-- ✅ Better error messages
 
 ### 7. 🎯 **Token Optimization**
 
@@ -661,11 +413,6 @@ response = structured_llm.invoke(synthesis_prompt)
 #### C. **Conversation Summarization**
 
 #### D. **Lazy Loading**
-
-**Expected Savings:**
-- 📉 60-70% reduction in prompt tokens
-- 💰 ~$0.02 → $0.005 per query
-- ⚡ Faster LLM responses
 
 ### 8. 🎨 **UI/UX Enhancements**
 
