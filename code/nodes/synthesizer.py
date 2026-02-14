@@ -8,10 +8,16 @@ from code.config import llm
 
 
 def synthesizer_node(state: AgentState) -> dict:
-    """
-    Generate final answer from all tool results
+    """Generate final answer from all tool results
 
-    Uses all accumulated results across iterations
+    Uses all accumulated results across iterations to synthesize
+    a comprehensive natural language response.
+
+    Args:
+        state: Current agent state containing question, results, and sources
+
+    Returns:
+        Dictionary with messages list containing the synthesized answer
     """
     question = state.get("original_question", "")
     all_results = state.get("previous_results", {})
