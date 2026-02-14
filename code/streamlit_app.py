@@ -3,7 +3,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 import time
 
 from utils import build_db_catalog
-from agent import app
+from code.core.agent import app
 from config import OPENAI_API_KEY, DB_FOLDER_PATH
 from langfuse.langchain import CallbackHandler
  
@@ -395,23 +395,18 @@ if prompt := st.chat_input("Pose-moi une question sur tes données... 💬"):
             "messages": st.session_state.agent_messages,
             "db_catalog": st.session_state.db_catalog,
             "original_question": prompt,
-            "resolved_query": "",
-            "planning_reasoning": "",
-            "sql_query": "",
-            "semantic_query": "",
-            "omdb_query": "",
-            "web_query": "",
-            "needs_sql": False,
-            "needs_semantic": False,
-            "needs_omdb": False,
-            "needs_web": False,
-            "sql_result": "[]",
-            "semantic_result": "[]",
-            "omdb_result": "{}",
-            "web_result": "{}",
+            "iteration_count": 0,
+            "max_iterations": 2,
+            "execution_plan": {},
+            "tool_results": {},
+            "evaluator_decision": "",
+            "evaluator_reasoning": "",
+            "replan_instructions": "",
+            "evaluator_confidence": 0.0,
+            "previous_plans": [],
+            "previous_results": {},
             "sources_used": [],
-            "sources_detailed": [],
-            "current_step": ""
+            "sources_detailed": []
         }
 
         config = {"thread_id": st.session_state.thread_id,
