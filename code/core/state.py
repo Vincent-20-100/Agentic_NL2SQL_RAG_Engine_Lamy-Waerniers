@@ -33,6 +33,7 @@ class AgentState(TypedDict):
     evaluator_decision: str
     evaluator_reasoning: str
     replan_instructions: str
+    evaluator_confidence: float
 
     # History (for loop context)
     previous_plans: list

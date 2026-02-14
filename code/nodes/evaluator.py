@@ -24,7 +24,8 @@ def evaluator_node(state: AgentState) -> dict:
         return {
             "evaluator_decision": "continue",
             "evaluator_reasoning": f"Max iterations ({max_iterations}) reached, proceeding with available data",
-            "replan_instructions": ""
+            "replan_instructions": "",
+            "evaluator_confidence": 0.5
         }
 
     # Build evaluation prompt
@@ -43,12 +44,14 @@ def evaluator_node(state: AgentState) -> dict:
         return {
             "evaluator_decision": decision.decision,
             "evaluator_reasoning": decision.reasoning,
-            "replan_instructions": decision.replan_instructions or ""
+            "replan_instructions": decision.replan_instructions or "",
+            "evaluator_confidence": decision.confidence
         }
     except Exception as e:
         # Fallback: continue with what we have
         return {
             "evaluator_decision": "continue",
             "evaluator_reasoning": f"Evaluation error: {str(e)}, proceeding with available data",
-            "replan_instructions": ""
+            "replan_instructions": "",
+            "evaluator_confidence": 0.0
         }
