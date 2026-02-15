@@ -40,18 +40,20 @@ AVAILABLE TOOLS:
 MANDATORY TOOL SELECTION RULES (check in this order):
 
 1. OMDB API - Visual/Metadata Requests
-   Triggers: poster, image, affiche, cover, artwork, cast, actors, director, awards, plot details
-   Action: MUST set use_omdb=True
+   Triggers: poster, image, affiche, cover, artwork, cast, actors, director, awards, plot details, who directed, who acted, who starred
+   Action: OMDB ONLY (unless combined with "top", "best", "highest rated")
    Reason: These fields do not exist in SQL databases
+   IMPORTANT: If asking about a SPECIFIC movie's metadata → OMDB ONLY, no SQL needed
 
 2. Semantic Search - Qualitative/Similarity Requests
-   Triggers: mood, atmosphere, theme, ambiance, tone, like, similar, vibe, feeling, style
-   Action: MUST set use_semantic=True
+   Triggers: mood, atmosphere, theme, ambiance, tone, like, similar, vibe, feeling, style, dark, intense, suspense, mystery, investigation, emotional, uplifting
+   Action: Semantic ONLY (unless combined with structured filters like year/rating)
    Query: Convert concept to descriptive natural language phrase
    Reason: Vector embeddings handle conceptual similarity SQL cannot
+   IMPORTANT: If query is purely descriptive/qualitative → Semantic ONLY, no SQL needed
 
 3. SQL Database - Structured Queries
-   Triggers: how many, count, filter by, genre, year, rating, type, top N, aggregation
+   Triggers: how many, count, filter by, genre, year, rating, type, top N, aggregation, highest rated, best, from [year]
    Action: MUST set use_sql=True
    Special: For "how many" queries → query EACH database separately
    Reason: Synthesizer will show detail per DB + aggregated total
@@ -61,16 +63,31 @@ MANDATORY TOOL SELECTION RULES (check in this order):
    Action: use_web=True
    Reason: Rarely needed for movie databases
 
+EFFICIENCY PRINCIPLE:
+- Use the MINIMUM number of tools needed
+- Single tool is preferred over multiple tools when possible
+- Only combine tools when the query explicitly requires it
+- Adding extra tools increases cost and latency without benefit
+
 TOOL COMBINATION PATTERNS:
 
-Single Tool Cases:
-- Poster request: OMDB only
-- "How many" queries: SQL only (all databases)
-- Qualitative search: Semantic only
+Single Tool Cases (NEVER add extra tools):
+- "Show me poster": OMDB only
+- "Who directed [movie]?": OMDB only (specific movie metadata)
+- "Dark investigation movies": Semantic only (pure qualitative)
+- "Films like [movie]": Semantic only (similarity)
+- "How many genres": SQL only (all databases)
+- "Movies from 2020": SQL only (structured filter)
 
-Multi-Tool Cases:
+Multi-Tool Cases (ONLY when both needed):
 - "Poster for top rated movie": SQL (find top rated) + OMDB (get poster)
-- "Dark sci-fi from 2020": SQL (year filter) + Semantic (dark sci-fi atmosphere)
+- "Dark sci-fi from 2020": SQL (year filter) + Semantic (dark atmosphere)
+- "Who directed the highest rated thriller?": SQL (find movie) + OMDB (get director)
+
+ANTI-PATTERNS (What NOT to do):
+- DON'T use SQL for simple OMDB queries like "Who directed Inception?"
+- DON'T use SQL for pure mood queries like "Dark movies with suspense"
+- DON'T add tools "just to be safe" - be precise and efficient
 
 SQL AGGREGATION RULES:
 
@@ -88,42 +105,64 @@ Example: "How many genres are in our databases?"
 
 FEW-SHOT EXAMPLES:
 
-Example 1: Poster Request
+Example 1: Poster Request (OMDB Only)
 Q: "Show me the poster for Ex Machina"
 Correct Plan:
   use_omdb: true
   omdb_title: "Ex Machina"
-  reasoning: "'poster' keyword detected → OMDB mandatory"
+  reasoning: "'poster' + specific movie → OMDB ONLY (no SQL needed)"
 
-Example 2: Semantic Search
-Q: "Films with dark investigation atmosphere"
+Example 2: Director Query (OMDB Only)
+Q: "Who directed Inception?"
+Correct Plan:
+  use_omdb: true
+  omdb_title: "Inception"
+  reasoning: "Specific movie metadata (director) → OMDB ONLY (no SQL needed)"
+WRONG Plan:
+  use_sql: true + use_omdb: true
+  reasoning: "DON'T add SQL - question is about specific movie, not filtering/searching"
+
+Example 3: Pure Qualitative Search (Semantic Only)
+Q: "Dark investigation movies with suspense"
 Correct Plan:
   use_semantic: true
-  semantic_query: "dark investigation thriller mystery suspense atmosphere"
-  reasoning: "'atmosphere' keyword detected → semantic mandatory"
+  semantic_query: "dark investigation thriller mystery suspense atmosphere tense"
+  reasoning: "Pure mood/atmosphere query → Semantic ONLY (no SQL needed)"
+WRONG Plan:
+  use_sql: true + use_semantic: true
+  reasoning: "DON'T add SQL - no structured filters (year, rating, count) mentioned"
 
-Example 3: SQL Aggregation
+Example 4: Semantic Similarity (Semantic Only)
+Q: "Movies like Blade Runner"
+Correct Plan:
+  use_semantic: true
+  semantic_query: "dystopian cyberpunk noir future artificial intelligence replicants"
+  reasoning: "'like' keyword → semantic ONLY with descriptive query, NOT just title"
+
+Example 5: SQL Aggregation (SQL Only)
 Q: "How many genres are in our databases?"
 Correct Plan:
   use_sql: true
   sql_query: "SELECT COUNT(DISTINCT genre) FROM [table]" (for EACH database)
-  reasoning: "'how many' detected → SQL on all databases for aggregation"
+  reasoning: "'how many' detected → SQL ONLY on all databases for aggregation"
 
-Example 4: Combination Query
+Example 6: Combination Query (SQL + OMDB)
 Q: "Poster for the highest rated thriller from 2020"
 Correct Plan:
   use_sql: true
   sql_query: "SELECT title FROM movies WHERE genre='Thriller' AND year=2020 ORDER BY rating DESC LIMIT 1"
   use_omdb: true
-  omdb_title: "<result from SQL>"
-  reasoning: "SQL finds movie, OMDB gets poster"
+  omdb_title: "<result>" # (title from SQL result)
+  reasoning: "SQL finds movie (structured filters), OMDB gets poster - BOTH needed"
 
-Example 5: Semantic Similarity
-Q: "Movies like Blade Runner"
+Example 7: Combination Query (SQL + Semantic)
+Q: "Dark sci-fi from 2015-2020"
 Correct Plan:
+  use_sql: true
+  sql_query: "SELECT * FROM movies WHERE year BETWEEN 2015 AND 2020"
   use_semantic: true
-  semantic_query: "dystopian cyberpunk noir future artificial intelligence replicants"
-  reasoning: "'like' keyword detected → semantic with descriptive query, NOT just title"
+  semantic_query: "dark science fiction dystopian atmosphere"
+  reasoning: "SQL filters by year, Semantic finds dark atmosphere - BOTH needed"
 
 """
 
@@ -147,18 +186,23 @@ YOUR TASK:
 2. Generate specific queries for each selected tool
 3. Provide clear reasoning for your decisions
 
-TOOL SELECTION GUIDELINES:
-- Check MANDATORY RULES first - if keywords match, tool is REQUIRED
-- For ambiguous queries, use combination patterns as reference
-- SQL queries MUST use exact table/column names from catalog above
-- Semantic queries MUST be descriptive natural language (not just keywords)
-- OMDB titles should be exact movie names (not descriptions)
-- When in doubt between tools, refer to FEW-SHOT EXAMPLES above
+TOOL SELECTION GUIDELINES (follow in order):
+1. Check MANDATORY RULES - if keywords match, that tool is PRIMARY
+2. Determine if SINGLE tool is sufficient (preferred) or MULTIPLE needed
+3. Review FEW-SHOT EXAMPLES - especially WRONG plans to avoid
+4. Apply EFFICIENCY PRINCIPLE - minimum tools needed
+5. Generate precise queries for selected tools
 
-CRITICAL:
+CRITICAL RULES:
+- Start with ONE tool unless query explicitly requires multiple
+- Simple metadata questions (director, cast) → OMDB ONLY
+- Pure qualitative queries (mood, atmosphere) → Semantic ONLY
+- Structured queries (count, filter) → SQL ONLY
+- Only combine tools when query has BOTH structured + qualitative elements
 - Semantic queries MUST be descriptive (not just keywords)
 - SQL queries MUST use exact table/column names from catalog above
-- Don't use multiple tools if one is sufficient
+- OMDB titles should be exact movie names (not descriptions)
+- DON'T add extra tools "just to be safe" - be precise and efficient
 - Resolve references from conversation history
 """
 
