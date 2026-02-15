@@ -4,10 +4,13 @@ import time
 
 from utils import build_db_catalog
 from core.agent import app
-from config import OPENAI_API_KEY, DB_FOLDER_PATH
+from config import OPENAI_API_KEY, DB_FOLDER_PATH, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
 from langfuse.langchain import CallbackHandler
- 
-langfuse_handler = CallbackHandler()
+
+langfuse_handler = CallbackHandler(
+    secret_key=LANGFUSE_SECRET_KEY,
+    public_key=LANGFUSE_PUBLIC_KEY
+)
 
 # =================================
 # Configuration
