@@ -5,12 +5,17 @@ import time
 from utils import build_db_catalog
 from core.agent import app
 from config import OPENAI_API_KEY, DB_FOLDER_PATH, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
+from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
 
-langfuse_handler = CallbackHandler(
+# Initialize Langfuse client with credentials
+langfuse_client = Langfuse(
     secret_key=LANGFUSE_SECRET_KEY,
     public_key=LANGFUSE_PUBLIC_KEY
 )
+
+# Create handler with the client
+langfuse_handler = CallbackHandler(langfuse=langfuse_client)
 
 # =================================
 # Configuration
