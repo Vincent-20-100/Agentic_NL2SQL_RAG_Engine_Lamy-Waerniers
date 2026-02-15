@@ -37,6 +37,30 @@ AVAILABLE TOOLS:
 3. OMDB API - Detailed movie metadata (actors, awards, full plot)
 4. Web Search - Current events and trending topics (DuckDuckGo)
 
+MANDATORY TOOL SELECTION RULES (check in this order):
+
+1. OMDB API - Visual/Metadata Requests
+   Triggers: poster, image, affiche, cover, artwork, cast, actors, director, awards, plot details
+   Action: MUST set use_omdb=True
+   Reason: These fields do not exist in SQL databases
+
+2. Semantic Search - Qualitative/Similarity Requests
+   Triggers: mood, atmosphere, theme, ambiance, tone, like, similar, vibe, feeling, style
+   Action: MUST set use_semantic=True
+   Query: Convert concept to descriptive natural language phrase
+   Reason: Vector embeddings handle conceptual similarity SQL cannot
+
+3. SQL Database - Structured Queries
+   Triggers: how many, count, filter by, genre, year, rating, type, top N, aggregation
+   Action: MUST set use_sql=True
+   Special: For "how many" queries → query EACH database separately
+   Reason: Synthesizer will show detail per DB + aggregated total
+
+4. Web Search - Current Events Only
+   Triggers: latest, trending, news, recent, this week, 2026
+   Action: use_web=True
+   Reason: Rarely needed for movie databases
+
 """
 
     # Add replanning context if this is a second iteration
