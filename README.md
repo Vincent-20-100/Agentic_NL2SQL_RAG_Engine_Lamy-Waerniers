@@ -25,6 +25,48 @@
 
 ---
 
+## 🚀 Quick Start
+
+### What is Albert Query?
+
+Albert Query is an intelligent movie search assistant that doesn't just match keywords—it understands what you're looking for. Think of it as having a movie expert on your team who can search through databases, understand moods and themes, fetch posters and details, and even check the latest trending films—all in response to natural language questions.
+
+### Key Concepts Explained
+
+**RAG (Retrieval-Augmented Generation):**
+Instead of relying solely on trained knowledge, the AI retrieves real data from databases before answering. This ensures accurate, up-to-date responses grounded in actual movie information.
+
+**Agentic AI:**
+The system doesn't just answer—it plans how to answer, executes the plan using various tools, evaluates if the results are sufficient, and can self-correct by replanning if needed.
+
+**Vector Search (Semantic Search):**
+Find movies by meaning, not just keywords. Ask for "dark investigation atmosphere" and get relevant thrillers, even if those exact words aren't in the database.
+
+**Multi-Tool Orchestration:**
+Different questions need different tools. Albert Query automatically chooses:
+- **SQL Database**: For structured queries (genre filters, year ranges, counts)
+- **Semantic Search**: For qualitative searches (mood, atmosphere, themes)
+- **OMDB API**: For posters, cast, directors, plot details
+- **Web Search**: For trending and latest releases
+
+### Quick Demo
+
+**Example Query:** *"Show me dark sci-fi movies from 2015-2020 with suspenseful atmosphere"*
+
+**What happens:**
+1. **Planner** analyzes the query and decides: Use SQL (for year filter) + Semantic Search (for "dark sci-fi suspenseful")
+2. **Executor** runs both tools in parallel
+3. **Evaluator** checks if results are sufficient
+4. **Synthesizer** combines results into a natural answer with sources
+
+**Result:** You get a curated list of sci-fi films matching both the time period and the atmospheric qualities you described.
+
+### Ready to Try?
+
+Jump to [Installation](#installation) to set up Albert Query, or continue reading for technical details on how the system works.
+
+---
+
 ## Overview
 
 **Albert Query** is an agentic AI system we developed as part of our M1 project at **Albert School** in collaboration with **Mines Paris - PSL**. The system intelligently answers questions about movies and TV series by orchestrating multiple data sources and tools through a LangGraph-based workflow.
