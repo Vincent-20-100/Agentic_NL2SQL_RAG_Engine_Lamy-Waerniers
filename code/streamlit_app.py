@@ -1,21 +1,19 @@
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 import time
+import os
 
 from utils import build_db_catalog
 from core.agent import app
 from config import OPENAI_API_KEY, DB_FOLDER_PATH, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
-from langfuse import Langfuse
+
+# Set Langfuse environment variables explicitly
+os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
+os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
+
+# Now import and create CallbackHandler (it will read from environment variables)
 from langfuse.langchain import CallbackHandler
-
-# Initialize Langfuse client with credentials
-langfuse_client = Langfuse(
-    secret_key=LANGFUSE_SECRET_KEY,
-    public_key=LANGFUSE_PUBLIC_KEY
-)
-
-# Create handler with the client
-langfuse_handler = CallbackHandler(langfuse=langfuse_client)
+langfuse_handler = CallbackHandler()
 
 # =================================
 # Configuration
