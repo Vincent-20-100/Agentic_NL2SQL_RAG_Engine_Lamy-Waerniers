@@ -219,7 +219,48 @@ All traces are automatically organized by session ID for easy conversation track
 
 Albert Query implements an agentic RAG system using LangGraph, structured as a state machine with four specialized nodes:
 
-*(Note: Detailed Mermaid diagram will be inserted here in Task 55)*
+```mermaid
+graph TB
+    Start([User Question]) --> Planner
+
+    subgraph Planning["🧠 PLANNER NODE (LLM)"]
+        Planner[Analyze Query + History]
+        Planner --> Decision{Tool Selection}
+    end
+
+    Decision -->|Selected Tools| Executor
+
+    subgraph Execution["⚡ EXECUTOR NODE (Parallel)"]
+        Executor[Run Tools Simultaneously]
+        Executor --> SQL[(🗄️ SQL Database<br/>8,000+ movies)]
+        Executor --> Semantic[(🔍 Semantic Search<br/>Vector Embeddings)]
+        Executor --> OMDB[(🎬 OMDB API<br/>Metadata & Posters)]
+        Executor --> Web[(🌐 Web Search<br/>Latest & Trending)]
+    end
+
+    SQL --> Results[Combined Results]
+    Semantic --> Results
+    OMDB --> Results
+    Web --> Results
+
+    Results --> Evaluator
+
+    subgraph Evaluation["✅ EVALUATOR NODE (LLM)"]
+        Evaluator{Data Sufficient?}
+    end
+
+    Evaluator -->|No - Replan| Planner
+    Evaluator -->|Yes| Synthesizer
+
+    subgraph Synthesis["📝 SYNTHESIZER NODE (LLM)"]
+        Synthesizer[Generate Response<br/>+ Sources]
+    end
+
+    Synthesizer --> End([Final Answer])
+
+    Note1[Max 2 execution cycles]
+    Evaluator -.-> Note1
+```
 
 #### The Four-Node Workflow:
 
