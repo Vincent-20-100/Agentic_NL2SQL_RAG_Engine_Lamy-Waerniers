@@ -15,7 +15,7 @@
 - [Installation](#installation)
 - [Monitoring with Langfuse](#monitoring-with-langfuse)
 - [Features](#features)
-- [Architecture](#architecture)
+- [Architecture & Technical Details](#️-architecture--technical-details)
 - [Project Structure](#project-structure)
 - [Components](#components)
 - [Workflow](#workflow)
@@ -213,55 +213,113 @@ All traces are automatically organized by session ID for easy conversation track
 
 ---
 
-## Architecture
+## 🏗️ Architecture & Technical Details
 
-### Agentic Workflow Pattern
+### How the Agentic Workflow Works
 
-Albert Query uses a **Planner-Executor-Evaluator-Synthesizer** pattern with self-correction capabilities:
+Albert Query implements an agentic RAG system using LangGraph, structured as a state machine with four specialized nodes:
 
-```
-┌─────────────────────────────────────────────────┐
-│                    START                        │
-└──────────────────┬──────────────────────────────┘
-                   ↓
-         ┌─────────────────┐
-         │    PLANNER      │  ← Analyzes query, selects tools
-         └────────┬────────┘
-                  ↓
-         ┌─────────────────┐
-         │    EXECUTOR     │  ← Runs tools in parallel
-         └────────┬────────┘
-                  ↓
-         ┌─────────────────┐
-         │   EVALUATOR     │  ← Assesses data sufficiency
-         └────────┬────────┘
-                  ↓
-          [Data Sufficient?]
-           ↙              ↘
-    [No - Replan]    [Yes - Continue]
-           ↓                ↓
-    (back to Planner)  ┌─────────────────┐
-    (max 2 iterations) │  SYNTHESIZER    │  ← Generates answer
-                       └────────┬────────┘
-                                ↓
-                              END
-```
+*(Note: Detailed Mermaid diagram will be inserted here in Task 55)*
 
-### Key Features
+#### The Four-Node Workflow:
 
-- **Planner**: LLM-powered tool selection based on query analysis
-- **Executor**: Parallel tool execution using asyncio for speed
-- **Evaluator**: Assesses if data is sufficient; can trigger replanning
-- **Synthesizer**: Natural language response generation with source attribution
-- **Loop Safety**: Maximum 2 iterations prevents infinite loops
-- **State Management**: LangGraph checkpointing maintains conversation context
+1. **Planner Node (LLM-Powered)**
+   - **Input**: User question + conversation history + database catalog
+   - **Output**: `ExecutionPlan` (structured output via OpenAI function calling)
+   - **Logic**: Analyzes query intent, selects appropriate tools, generates tool-specific parameters
+   - **Key Feature**: Uses mandatory keyword triggers (e.g., "poster" → OMDB, "mood" → Semantic)
 
-### Available Tools
+2. **Executor Node (Parallel Execution)**
+   - **Input**: `ExecutionPlan` from Planner
+   - **Output**: Combined results from all selected tools
+   - **Logic**: Executes tools in parallel using asyncio for optimal performance
+   - **Tools Available**:
+     - SQL Database (8,000+ movies across multiple SQLite DBs)
+     - Semantic Search (ChromaDB vector store with embeddings)
+     - OMDB API (posters, cast, plot details, awards)
+     - Web Search (latest releases, trending movies)
 
-1. **SQL Database** - Structured queries on 8,000+ movies/shows (filters, aggregations)
-2. **Semantic Search** - Vector similarity search for plot-based discovery
-3. **OMDB API** - Enriched metadata (cast, ratings, detailed plots)
-4. **Web Search** - Current information and trending topics
+3. **Evaluator Node (LLM-Powered)**
+   - **Input**: Execution results + original question
+   - **Output**: `EvaluationResult` with sufficiency assessment
+   - **Logic**: Determines if results are sufficient or if replanning is needed
+   - **Self-Correction**: Can trigger up to 1 replan iteration (max 2 total cycles)
+
+4. **Synthesizer Node (LLM-Powered)**
+   - **Input**: All tool results + original question
+   - **Output**: Natural language response with cited sources
+   - **Logic**: Combines information from multiple sources into a coherent answer
+   - **Key Feature**: Always cites sources (database names, OMDB, web search)
+
+### Tool Selection Logic
+
+The Planner uses **mandatory keyword-based rules** for deterministic tool selection:
+
+**Mandatory Rules:**
+- **Poster/Image requests** → Always OMDB (databases don't store images)
+  - Keywords: "poster", "affiche", "image", "cover", "artwork"
+
+- **Qualitative searches** → Always Semantic Search (vector similarity)
+  - Keywords: "mood", "atmosphere", "theme", "like", "similar", "vibe"
+
+- **Structured queries** → SQL Database (filters, counts, aggregations)
+  - Keywords: "how many", "count", "genre", "year", "rating", "top N"
+
+- **Current events** → Web Search (rarely needed for movies)
+  - Keywords: "latest", "trending", "news", "2026"
+
+**Planner Decision Examples:**
+
+| Query | Selected Tools | Reasoning |
+|-------|---------------|-----------|
+| "Show me the poster for Ex Machina" | OMDB only | "poster" keyword → mandatory OMDB |
+| "Dark investigation movies" | Semantic only | "Dark investigation" = qualitative search |
+| "How many genres in database?" | SQL only (all DBs) | "How many" → SQL aggregation across all DBs |
+| "Poster for top thriller" | SQL + OMDB | SQL finds top thriller, OMDB fetches poster |
+| "Dark sci-fi from 2020" | SQL + Semantic | SQL filters year, Semantic finds "dark sci-fi" vibe |
+
+### Example Query Walkthrough
+
+**Query:** *"Show me dark sci-fi movies from 2015-2020 with suspenseful atmosphere"*
+
+**Step-by-Step Execution:**
+
+1. **Planner Analysis** (Temperature=0 for consistency)
+   ```json
+   {
+     "use_sql": true,
+     "sql_database": "ALL",
+     "sql_query": "SELECT title, year, rating FROM movies WHERE genre LIKE '%Sci-Fi%' AND year BETWEEN 2015 AND 2020",
+     "use_semantic": true,
+     "semantic_query": "dark sci-fi suspenseful atmosphere dystopian thriller",
+     "reasoning": "SQL filters by year/genre, Semantic captures mood/atmosphere"
+   }
+   ```
+
+2. **Executor Runs in Parallel**
+   - SQL query executed across 3 databases → ~150 sci-fi films (2015-2020)
+   - Semantic search in ChromaDB → Top 10 films matching "dark suspenseful" vibe
+   - Results combined with metadata (title, year, rating, plot)
+
+3. **Evaluator Assessment**
+   ```json
+   {
+     "data_sufficient": true,
+     "quality_score": 8.5,
+     "reasoning": "SQL provided time/genre filter, Semantic provided atmospheric matches, sufficient overlap for quality answer"
+   }
+   ```
+
+4. **Synthesizer Output**
+   - Merges SQL + Semantic results
+   - Prioritizes films appearing in both (high confidence)
+   - Cites sources: "Found in database MovieLens, confirmed by semantic similarity"
+   - Formats as natural response with titles, years, brief descriptions
+
+**Langfuse Trace Example:**
+- Total latency: 4.2s (Planner 1.1s, Executor 2.3s, Evaluator 0.4s, Synthesizer 0.8s)
+- Token usage: 450 input, 120 output (~$0.002 cost)
+- Tools: SQL + Semantic (no replanning needed)
 
 ## Project Structure
 
