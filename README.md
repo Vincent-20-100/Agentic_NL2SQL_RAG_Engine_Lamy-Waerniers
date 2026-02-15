@@ -138,9 +138,63 @@ The app will open at `http://localhost:8501`
 
 ---
 
-## Monitoring with Langfuse
+## 🔍 Monitoring with Langfuse
 
-The application includes integrated monitoring and observability through [Langfuse](https://langfuse.com/), allowing you to track and analyze LLM interactions in real-time.
+### What is Langfuse?
+
+Langfuse is an observability platform for LLM applications that tracks every step of the AI workflow. It helps you understand what's happening under the hood, identify issues, and optimize performance.
+
+### Why Use It?
+
+- **Debugging**: See which tools were selected and why the Planner made specific decisions
+- **Cost Tracking**: Monitor OpenAI API usage per query to control spending
+- **Performance**: Measure latency of each node (Planner, Executor, Evaluator, Synthesizer)
+- **Quality**: Identify wrong tool choices or insufficient results that trigger replanning
+
+### What You See in Langfuse
+
+When you run a query, Langfuse captures:
+
+- **Complete Traces**: Full workflow from Planner → Executor → Evaluator → Synthesizer
+- **Token Usage**: Input/output tokens per LLM call (Planner, Evaluator, Synthesizer)
+- **Execution Time**: Latency breakdown per node
+- **Tool Selection Decisions**: Which tools were chosen and the reasoning
+- **Errors & Edge Cases**: Failed API calls, replanning loops, insufficient data
+
+### Practical Use Cases
+
+1. **Debug Tool Selection**: "Why did it use SQL instead of Semantic Search for this query?"
+   - Check Planner trace → see reasoning field → understand keyword triggers
+
+2. **Optimize Performance**: "Which tool is slowing down the workflow?"
+   - Compare Executor node timings → identify bottleneck (SQL query, API call, etc.)
+
+3. **Quality Assurance**: "Is replanning happening too frequently?"
+   - Filter traces by iteration_count > 1 → analyze what queries trigger replanning
+
+4. **Cost Management**: "Can we optimize prompts to reduce token usage?"
+   - Sum token usage across queries → identify verbose prompts → refine
+
+### Example Insights
+
+Here's what Langfuse shows for a typical query:
+
+**Query**: *"Dark sci-fi movies from 2015-2020"*
+
+- **Tools Used**: SQL + Semantic Search ✅
+- **Token Usage**:
+  - Planner: 340 input, 85 output
+  - Synthesizer: 180 input, 95 output
+  - Total: ~$0.0018 (GPT-4o-mini)
+- **Execution Time**:
+  - Planner: 1.1s
+  - Executor (parallel): 2.3s (SQL 1.8s, Semantic 2.1s)
+  - Evaluator: 0.4s
+  - Synthesizer: 0.8s
+  - **Total: 4.6s**
+- **Replanning**: None (data sufficient on first attempt)
+
+**Insight**: Semantic search is the bottleneck (2.1s). Could optimize by reducing embedding dimensions or using cached results.
 
 ### Setup
 
@@ -151,25 +205,6 @@ The application includes integrated monitoring and observability through [Langfu
    LANGFUSE_SECRET_KEY="sk-lf-..."
    LANGFUSE_PUBLIC_KEY="pk-lf-..."
    ```
-
-### Features
-
-The Langfuse integration automatically tracks:
-- **LLM calls**: All GPT-4o-mini requests and responses
-- **Token usage**: Input/output token counts per query
-- **Latency**: Response times for each agent node
-- **Conversation traces**: Full workflow execution from planner to synthesizer
-- **Cost estimation**: Automatic cost tracking based on token usage
-
-### Viewing Traces
-
-Access your Langfuse dashboard at [cloud.langfuse.com](https://cloud.langfuse.com) to:
-- View detailed traces of each user query
-- Analyze tool selection patterns (SQL, semantic, OMDB, web)
-- Monitor performance metrics and identify bottlenecks
-- Debug errors and track edge cases
-
-All traces are automatically organized by session ID for easy conversation tracking.
 
 ---
 ## Features
