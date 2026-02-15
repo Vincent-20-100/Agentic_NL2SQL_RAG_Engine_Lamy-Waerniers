@@ -5,11 +5,12 @@ import os
 
 from utils import build_db_catalog
 from core.agent import app
-from config import OPENAI_API_KEY, DB_FOLDER_PATH, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY
+from config import OPENAI_API_KEY, DB_FOLDER_PATH, LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
 
 # Set Langfuse environment variables explicitly
 os.environ["LANGFUSE_SECRET_KEY"] = LANGFUSE_SECRET_KEY
 os.environ["LANGFUSE_PUBLIC_KEY"] = LANGFUSE_PUBLIC_KEY
+os.environ["LANGFUSE_HOST"] = LANGFUSE_HOST
 
 # Now import and create CallbackHandler (it will read from environment variables)
 from langfuse.langchain import CallbackHandler
