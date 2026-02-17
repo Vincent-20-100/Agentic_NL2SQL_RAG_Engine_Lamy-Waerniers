@@ -16,7 +16,7 @@
 - [Installation](#installation)
 - [Monitoring with Langfuse](#-monitoring-with-langfuse)
 - [Features](#features)
-- [Architecture & Technical Details](#️-architecture--technical-details)
+- [Architecture & Technical Details](#-architecture--technical-details)
 - [Project Structure](#project-structure)
 - [Future Improvements](#future-improvements)
 - [Contributors](#contributors)
