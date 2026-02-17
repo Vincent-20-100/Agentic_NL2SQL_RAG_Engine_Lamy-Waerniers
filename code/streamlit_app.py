@@ -93,7 +93,7 @@ st.markdown("""
         border-left: 4px solid #764ba2;
     }
 
-    /* Animations de chargement */
+    /* Loading animations */
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
@@ -200,13 +200,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Vérifier la clé API
+# Check API key
 if not OPENAI_API_KEY:
     st.error("❌ OPENAI_API_KEY manquante")
     st.stop()
 
 # =================================
-# Initialisation Session State
+# Initialize Session State
 # =================================
 if "chat_messages" not in st.session_state:
     st.session_state.chat_messages = []
@@ -236,7 +236,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =================================
-# Sidebar - Infos et Paramètres
+# Sidebar - Info and Settings
 # =================================
 with st.sidebar:
 
