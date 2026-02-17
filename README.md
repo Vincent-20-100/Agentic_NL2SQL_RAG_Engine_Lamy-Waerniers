@@ -11,14 +11,13 @@
 
 ## Table of Contents
 
+- [Quick Start](#-quick-start)
 - [Overview](#overview)
 - [Installation](#installation)
-- [Monitoring with Langfuse](#monitoring-with-langfuse)
+- [Monitoring with Langfuse](#-monitoring-with-langfuse)
 - [Features](#features)
 - [Architecture & Technical Details](#️-architecture--technical-details)
 - [Project Structure](#project-structure)
-- [Components](#components)
-- [Workflow](#workflow)
 - [Future Improvements](#future-improvements)
 - [Contributors](#contributors)
 - [License](#license)
